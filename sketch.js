@@ -69,6 +69,7 @@ let blueBlocks = [];
 let grayBlocks = [];
 let canvas;
 
+
 function windowResized() {
   // Resize the canvas and reposition it to be centered when the window is resized
   resizeCanvas(558, 558);
@@ -118,8 +119,67 @@ class Block {
   }
 }
 
+function moveBlocks() {
+  let cellWidth = 558 / roadMetrics[0].length;
+  let cellHeight = 558 / roadMetrics.length;
+
+  for (let block of [...redBlocks, ...blueBlocks]) {
+    if (!block.hasMoved) {
+      // Change the initial position to yellow
+      yellowBlocks.push(new Block(color(225, 201, 41), block.x, block.y, block.width, block.height));
+      block.hasMoved = true; // Mark as moved
+      block.direction = floor(random(4)); // Initialize a random direction
+    }
+
+    let newX = block.x;
+    let newY = block.y;
+    let directionsTried = []; // Record the directions tried
+
+    // Try moving in the current direction
+    let canMove = false;
+    while (directionsTried.length < 4) {
+      switch (block.direction) {
+        case 0: newY = block.y - cellHeight; newX = block.x; break; // Up
+        case 1: newX = block.x + cellWidth; newY = block.y; break;  // Right
+        case 2: newY = block.y + cellHeight; newX = block.x; break; // Down
+        case 3: newX = block.x - cellWidth; newY = block.y; break;  // Left
+      }
+
+      // Check if the new position is within the metrics range and is a valid road
+      let i = round(newY / cellHeight);
+      let j = round(newX / cellWidth);
+
+      if (
+        i >= 0 &&
+        i < roadMetrics.length &&
+        j >= 0 &&
+        j < roadMetrics[0].length &&
+        roadMetrics[i][j] !== 0
+      ) {
+        // Can move, update position
+        block.x = newX;
+        block.y = newY;
+        canMove = true;
+        break;
+      } else {
+        // Record the direction tried and randomly select a new direction
+        directionsTried.push(block.direction);
+        do {
+          block.direction = floor(random(4));
+        } while (directionsTried.includes(block.direction)); // Ensure not to repeat the same direction
+      }
+    }
+
+    // If unable to move, stay in place
+    if (!canMove) {
+      block.x = block.x;
+      block.y = block.y;
+    }
+  }
+}
 
 function drawAllBlocks() {
+  moveBlocks();
   for (let yellowBlock of yellowBlocks) {
     fill(yellowBlock.color);
     noStroke();
@@ -219,10 +279,6 @@ function drawBuildings(x,y,width,height,color){
   rect(x,y,width,height);
   noStroke();;
 }
-
-
-
-
 
 
 
