@@ -69,6 +69,26 @@ let blueBlocks = [];
 let grayBlocks = [];
 let canvas;
 
+let moveInterval = 80; // Set the move interval to 0.2 seconds (200 milliseconds)
+let lastMoveTime = 0;
+
+//pac-man innitial
+let pacmanX, pacmanY;
+let pacmanAngle = 0;
+let mouthOpening = true;
+let pacmanSize = 1.5; // Increase Pacman size
+let cellWidth, cellHeight;
+let pacmanDirection = 'RIGHT'
+
+let moveDelay = 80; // Delay time in milliseconds (controls the speed of pacman movement)
+let lastMoveTimePac = 0; // Tracks the last move time for Pacman
+
+let movingUp = false;
+let movingDown = false;
+let movingLeft = false;
+let movingRight = false;
+
+let score = 0; // Variable to keep track of the score
 
 function windowResized() {
   // Resize the canvas and reposition it to be centered when the window is resized
@@ -76,9 +96,31 @@ function windowResized() {
   canvas.position(windowWidth / 2 - width / 2, windowHeight / 2 - height / 2);
 }
 
+
 function setup() {
   canvas = createCanvas(558, 558);
   canvas.position(windowWidth / 2 - width / 2, windowHeight / 2 - height / 2);
+  
+  // Calculate cell width and height for placing Pacman
+  cellWidth = 558 / roadMetrics[0].length;
+  cellHeight = 558 / roadMetrics.length;
+
+  // Find a yellow block near the center
+  for (let i = floor(roadMetrics.length / 3); i < floor(2 * roadMetrics.length / 3); i++) {
+    for (let j = floor(roadMetrics[0].length / 3); j < floor(2 * roadMetrics[0].length / 3); j++) {
+      if (roadMetrics[i][j] === 1) {
+        pacmanX = cellWidth * j + cellWidth / 2;
+        pacmanY = cellHeight * i + cellHeight / 2;
+        break;
+      }
+    }
+    if (pacmanX && pacmanY) break; // Exit outer loop if position is found
+  }
+
+  setInterval(() => {
+    moveBlocks(); // Call the move function at intervals
+  }, 80);
+
   // Initialize the blocks
   for (let i = 0; i < roadMetrics.length; i++) {
     let row = roadMetrics[i];
@@ -179,11 +221,15 @@ function moveBlocks() {
 }
 
 function drawAllBlocks() {
-  moveBlocks();
   for (let yellowBlock of yellowBlocks) {
     fill(yellowBlock.color);
     noStroke();
     rect(yellowBlock.x, yellowBlock.y, yellowBlock.width, yellowBlock.height);
+  }
+  for (let grayBlock of grayBlocks) {
+    fill(grayBlock.color);
+    noStroke();
+    rect(grayBlock.x, grayBlock.y, grayBlock.width, grayBlock.height);
   }
   for (let redBlock of redBlocks) {
     fill(redBlock.color);
@@ -195,10 +241,113 @@ function drawAllBlocks() {
     noStroke();
     rect(blueBlock.x, blueBlock.y, blueBlock.width, blueBlock.height);
   }
-  for (let grayBlock of grayBlocks) {
-    fill(grayBlock.color);
-    noStroke();
-    rect(grayBlock.x, grayBlock.y, grayBlock.width, grayBlock.height);
+
+}
+function drawPacman() {
+  fill(255, 255, 0);
+  noStroke();
+
+  // Control the mouth animation (opening and closing)
+  if (mouthOpening) {
+    pacmanAngle += 0.05;
+    if (pacmanAngle > QUARTER_PI) {
+      mouthOpening = false;
+    }
+  } else {
+    pacmanAngle -= 0.05;
+    if (pacmanAngle < 0) {
+      mouthOpening = true;
+    }
+  }
+
+  // Adjust Pacman's arc based on direction
+  let startAngle, endAngle;
+  switch (pacmanDirection) {
+    case 'UP':
+      startAngle = -HALF_PI + pacmanAngle;
+      endAngle = -HALF_PI - pacmanAngle;
+      break;
+    case 'DOWN':
+      startAngle = HALF_PI + pacmanAngle;
+      endAngle = HALF_PI - pacmanAngle; // Restore the previous correct setting for DOWN
+      break;
+    case 'LEFT':
+      startAngle = PI + pacmanAngle; // Adjust for left-facing Pacman
+      endAngle = PI - pacmanAngle;   // Adjust for left-facing Pacman
+      break;
+    case 'RIGHT':
+    default:
+      startAngle = pacmanAngle;
+      endAngle = TWO_PI - pacmanAngle;
+      break;
+  }
+
+  // Draw Pacman with the correct angle based on direction
+  arc(pacmanX, pacmanY, cellWidth * pacmanSize, cellHeight * pacmanSize, startAngle, endAngle, PIE);
+}
+
+function keyPressed() {
+  if (keyCode === UP_ARROW) {
+    pacmanDirection = 'UP';
+    movingUp = true;
+  } else if (keyCode === DOWN_ARROW) {
+    pacmanDirection = 'DOWN';
+    movingDown = true;
+  } else if (keyCode === LEFT_ARROW) {
+    pacmanDirection = 'LEFT';
+    movingLeft = true;
+  } else if (keyCode === RIGHT_ARROW) {
+    pacmanDirection = 'RIGHT';
+    movingRight = true;
+  }
+}
+
+function keyReleased() {
+  if (keyCode === UP_ARROW) {
+    movingUp = false;
+  } else if (keyCode === DOWN_ARROW) {
+    movingDown = false;
+  } else if (keyCode === LEFT_ARROW) {
+    movingLeft = false;
+  } else if (keyCode === RIGHT_ARROW) {
+    movingRight = false;
+  }
+}
+
+function movePacman(dx, dy) {
+  let newX = pacmanX + dx;
+  let newY = pacmanY + dy;
+
+  // 检查新位置是否在道路范围内
+  let i = floor(newY / cellHeight);
+  let j = floor(newX / cellWidth);
+  if (
+    i >= 0 &&
+    i < roadMetrics.length &&
+    j >= 0 &&
+    j < roadMetrics[0].length &&
+    roadMetrics[i][j] !== 0
+  ) {
+    pacmanX = newX;
+    pacmanY = newY;
+  }
+}
+
+function checkCollision() {
+  for (let i = redBlocks.length - 1; i >= 0; i--) {
+    let block = redBlocks[i];
+    if (dist(pacmanX, pacmanY, block.x + block.width / 2, block.y + block.height / 2) < cellWidth * pacmanSize / 2) {
+      redBlocks.splice(i, 1); // Remove the block from the array
+      score++; // Increase the score
+    }
+  }
+
+  for (let i = blueBlocks.length - 1; i >= 0; i--) {
+    let block = blueBlocks[i];
+    if (dist(pacmanX, pacmanY, block.x + block.width / 2, block.y + block.height / 2) < cellWidth * pacmanSize / 2) {
+      blueBlocks.splice(i, 1); // Remove the block from the array
+      score++; // Increase the score
+    }
   }
 }
 
@@ -206,9 +355,33 @@ function draw() {
   background(242, 243, 238); // Set background color
   drawAllBuildings(); // Draw all buildings
   drawAllBlocks(); // Draw all blocks
+  drawPacman(); // Draw Pacman
 
+  // Check collision
+  checkCollision();
+
+  // Display score
+  fill(0);
+  textSize(16);
+  text("Score: " + score, 10, 20);
+
+  // Check the time difference from the last move
+  if (millis() - lastMoveTimePac > moveDelay) {
+    if (movingUp) {
+      movePacman(0, -cellHeight);
+    }
+    if (movingDown) {
+      movePacman(0, cellHeight);
+    }
+    if (movingLeft) {
+      movePacman(-cellWidth, 0);
+    }
+    if (movingRight) {
+      movePacman(cellWidth, 0);
+    }
+    lastMoveTimePac = millis(); // Update the last move time for Pacman
+  }
 }
-
 function drawBuildings(x, y, width, height, color) {
   fill(color);
   rect(x, y, width, height);
