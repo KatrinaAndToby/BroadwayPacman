@@ -1,8 +1,49 @@
+
 html, body {
   margin: 0;
   padding: 0;
 }
 
+
 canvas {
   display: block;
+}
+
+/* Center the content of the body and set a default font */
+body {
+  display: flex; /* Use flexbox to align elements within the body */
+  flex-direction: column; /* Stack elements vertically */
+  align-items: center; /* Center align elements horizontally */
+  font-family: Arial, sans-serif; /* Set the default font for text */
+  margin: 0;
+  padding: 0;
+}
+
+/* Title styling */
+.title {
+  font-size: 36px; /* Large font size for title */
+  font-weight: bold; /* Make the title text bold */
+  text-align: center; /* Center align the title text */
+  margin: 20px 0; /* Add spacing above and below the title */
+}
+
+/* Set different colors for each word in the title */
+
+/* Red color for the word "Broadway" */
+.broadway {
+  color: rgb(175, 57, 43); /* Red color */
+}
+
+/* Yellow color for the word "Pacman" */
+.pacman {
+  color: rgb(225, 201, 41); /* Yellow color */
+}
+
+/* Styling for instructions text below the canvas */
+.instructions {
+  font-size: 14px; /* Smaller font size for instructions */
+  color: rgb(217, 214, 209); /* Light gray color for clarity against the background */
+  text-align: center; /* Center align the instructions */
+  max-width: 90%; /* Limit the maximum width for better readability */
+  margin: 580px auto 0 auto; /* Center instructions horizontally and position below canvas */
 }
